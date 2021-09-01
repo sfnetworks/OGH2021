@@ -3,3 +3,5 @@
 Slides and code used for presenting at [OpenGeoHub Summer School 2021](https://opengeohub.org/summer_school_2021). 
 
 Check the slides here: https://sfnetworks.github.io/OGH2021/slides#1
+
+Open Street Map data is shared under ODbL license, https://www.openstreetmap.org/copyright
