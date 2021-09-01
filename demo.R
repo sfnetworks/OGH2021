@@ -12,14 +12,11 @@ library(magrittr)
 # Load the street segments that define the (main roads of the) road network of
 # the Isle of Wight (an Island located in the south of England) according to a
 # driving mode of transport
-iow <- st_read("https://github.com/sfnetworks/OGH2021/raw/master/isle-of-wight.gpkg")
+iow <- st_read("https://github.com/sfnetworks/OGH2021/raw/master/isle-of-wight.gpkg", quiet = TRUE)
 
 # Let's see a plot
 par(mar = rep(0, 4))
 plot(iow)
-
-# and an interactive plot
-mapview(iow)
 
 # We can already notice that there are several groups of segments that look
 # disconnected from the main network.
@@ -100,8 +97,8 @@ sfn_clean <- sfn %E>%
   arrange(edge_length()) %>%
   convert(to_spatial_simple) %>%
   convert(to_spatial_smooth) %>%
-  convert(to_components, .clean = TRUE) %>%
-  convert(to_spatial_simple)
+  convert(to_components) %>%
+  convert(to_spatial_simple, .clean = TRUE)
 
 # Check the companion slides and the package's vignettes for several toy
 # examples showing the importance of these morphers.
@@ -243,6 +240,61 @@ plot(sfn_small, add = TRUE, col = "red")
 sfn_clean %E>% st_filter(sfn_buffer) %>% plot(lwd = 3)
 plot(sfn_buffer, add = TRUE, border = "orange", lwd = 3)
 
+# Tips
+
+# The following code may be used to simulate an sfnetwork object where
+# a) n nodes are randomly placed in a unit square;
+# b) two nodes are connected if their are closer than parameter `radius`.
+
+set.seed(123)
+my_random_nodes <- play_geometry(200, radius = 0.1)
+my_random_sfn <- as_sfnetwork(my_random_nodes, coords = c("x", "y"))
+
+# Check the plot:
+unit_square <- st_sfc(st_polygon(list(rbind(c(0, 0), c(0, 1), c(1, 1), c(1, 0), c(0, 0)))))
+par(mar = rep(0, 4))
+plot(unit_square, lwd = 2)
+plot(my_random_sfn, add = TRUE)
+
+# If you need to subset a large `sfnetwork` object, the following approach may
+# be more efficient thant the usual `st_filter` (although a bit more verbose).
+# First, simulate some data:
+
+set.seed(123)
+my_random_nodes <- play_geometry(1e6, radius = 5e-4)
+my_random_sfn <- as_sfnetwork(my_random_nodes, coords = c("x", "y"))
+
+# Define a polygon contained into the unit square:
+
+small_square <- st_sfc(st_polygon(list(rbind(c(0.4, 0.4), c(0.4, 0.6), c(0.6, 0.6), c(0.6, 0.4), c(0.4, 0.4)))))
+
+# and filter only the nodes that are contained into that small square:
+
+system.time({
+  idxs <- st_contains(small_square, my_random_sfn %>% activate(nodes))
+  my_small_random_sfn_v1 <- my_random_sfn %N>% slice(unlist(idxs))
+})
+
+# The equivalent code with st_filter takes a little bit longer with equivalent results:
+
+system.time({
+  my_small_random_sfn_v2 <- my_random_sfn %N>% st_filter(small_square)
+})
+
+# As always, let's plot the result (but, first, we need to repeat the test with less points):
+
+my_random_nodes <- play_geometry(5e4, radius = 5e-3)
+my_random_sfn <- as_sfnetwork(my_random_nodes, coords = c("x", "y"))
+
+idxs <- st_contains(small_square, my_random_sfn %>% activate(nodes))
+my_small_random_sfn <- my_random_sfn %N>% slice(unlist(idxs))
+
+plot(unit_square, lwd = 2)
+plot(small_square, lwd = 2, border = "darkred", add = TRUE)
+plot(my_random_sfn, add = TRUE, pch = 46, draw_lines = FALSE, cex = 0.01)
+plot(my_small_random_sfn, add = TRUE, pch = 46, draw_lines = FALSE, cex = 0.01, col = "darkred")
+
+rm(unit_square, small_square, my_random_nodes, my_random_sfn, my_small_random_sfn, my_small_random_sfn_v1, my_small_random_sfn_v2, idxs)
 # Shortest paths ----------------------------------------------------------
 
 # Calculating shortest paths between pairs of nodes is a core task in network
@@ -270,7 +322,6 @@ edges_path <- sfn_clean %>%
   st_geometry("edges") %>%
   extract(do.call(c, sfn_path$edge_paths))
 
-sf.colors(2, categorical = TRUE)
 par(mar = rep(0, 4))
 plot(sfn_clean, col = "grey")
 plot(edges_path, add = TRUE, col = "#8da0cb", lwd = 4)
@@ -301,7 +352,5 @@ plot(end_point, col = "#fc8d62", pch = 20, add = TRUE, cex = 2)
 # 3. Check the introductory vignettes for many many more examples (e.g.
 # one-to-many routing, distance matrices, closest facility analysis, TSP,
 # isochrones)
-
-# Extras (more advanced) --------------------------------------------------
 
 # Solution to the OGH challenge and relevant example ----------------------
