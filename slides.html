@@ -41,11 +41,12 @@ class: middle, hide-logo
 
 ## Schedule 
 
-- 17.30 - 18.00: Brief introduction to the R package `sfnetworks`. 
+- 17.30 - 17.45: Brief introduction to the R package `sfnetworks`. 
   * What are Geospatial Networks?
   * Motivations and philosophy behind `sfnetworks`
-  * Main preprocessing functions
-- 18.00 - 18.30: Live demo (see [demo.Rmd](https://github.com/sfnetworks/OGH2021/raw/master/demo.Rmd)) + Q&amp;A + coding the solution to the challenge for OGH 2021
+- 17.45 - 18.00 : Live demo (see [demo.Rmd](https://github.com/sfnetworks/OGH2021/raw/master/demo.Rmd))
+- 18.00 - 18.10: Main preprocessing functions
+- 18.10 - 18.30: Live demo (see [demo.Rmd](https://github.com/sfnetworks/OGH2021/raw/master/demo.Rmd)) + Q&amp;A + coding the solution to the challenge for OGH 2021
 
 You can install the stable version of `sfnetworks` from [CRAN](https://CRAN.R-project.org/package=sfnetworks) and the development version from the [develop](https://github.com/luukvdmeer/sfnetworks/tree/develop) branch of the github repo: 
 
@@ -81,7 +82,7 @@ Edges usually associated with **LINESTRING** geometries
 
 ???
 
-Underline that we cannot split the spatial and graph dimensions
+Underline that we cannot split the spatial and graph dimensions and that the topological information is not enough to describe the network, we need the spatial component. 
 
 ---
 class: center, top, hide-logo
@@ -99,22 +100,16 @@ roxel %&gt;%
   select(name, type)
 ```
 
-```
-# A tibble: 851 x 2
-   name                  type       
-   &lt;chr&gt;                 &lt;fct&gt;      
- 1 Havixbecker Strasse   residential
- 2 Pienersallee          secondary  
- 3 Schulte-Bernd-Strasse residential
- 4 &lt;NA&gt;                  path       
- 5 Welsingheide          residential
- 6 &lt;NA&gt;                  footway    
- 7 &lt;NA&gt;                  footway    
- 8 &lt;NA&gt;                  path       
- 9 &lt;NA&gt;                  track      
-10 &lt;NA&gt;                  track      
-# ... with 841 more rows
-```
+&lt;PRE class="fansi fansi-output"&gt;&lt;CODE&gt;&lt;span style='color: #555555;'&gt;# A tibble: 851 x 2&lt;/span&gt;
+  name                  type       
+  &lt;span style='color: #555555; font-style: italic;'&gt;&amp;lt;chr&amp;gt;&lt;/span&gt;                 &lt;span style='color: #555555; font-style: italic;'&gt;&amp;lt;fct&amp;gt;&lt;/span&gt;      
+&lt;span style='color: #555555;'&gt;1&lt;/span&gt; Havixbecker Strasse   residential
+&lt;span style='color: #555555;'&gt;2&lt;/span&gt; Pienersallee          secondary  
+&lt;span style='color: #555555;'&gt;3&lt;/span&gt; Schulte-Bernd-Strasse residential
+&lt;span style='color: #555555;'&gt;4&lt;/span&gt; &lt;span style='color: #BB0000;'&gt;NA&lt;/span&gt;                    path       
+&lt;span style='color: #555555;'&gt;5&lt;/span&gt; Welsingheide          residential
+&lt;span style='color: #555555;'&gt;# ... with 846 more rows&lt;/span&gt;
+&lt;/CODE&gt;&lt;/PRE&gt;
 ]
 ]
 
@@ -131,6 +126,10 @@ Shared design philosophy
 Tidy data structures
 ]
 
+???
+
+In that tibble we have that each row is an observation and columns are variables. 
+
 ---
 class: center, top, hide-logo
 
@@ -144,19 +143,18 @@ library(sf)
 roxel[1:3, "name"]
 ```
 
-```
-Simple feature collection with 3 features and 1 field
+&lt;PRE class="fansi fansi-output"&gt;&lt;CODE&gt;Simple feature collection with 3 features and 1 field
 Geometry type: LINESTRING
 Dimension:     XY
 Bounding box:  xmin: 7.532 ymin: 51.95 xmax: 7.534 ymax: 51.96
 Geodetic CRS:  WGS 84
-# A tibble: 3 x 2
+&lt;span style='color: #555555;'&gt;# A tibble: 3 x 2&lt;/span&gt;
   name                                                 geometry
-  &lt;chr&gt;                                        &lt;LINESTRING [°]&gt;
-1 Havixbecker Strasse                (7.534 51.96, 7.533 51.96)
-2 Pienersallee          (7.532 51.95, 7.532 51.95, 7.532 51.95)
-3 Schulte-Bernd-Strasse (7.533 51.95, 7.533 51.95, 7.533 51.95)
-```
+  &lt;span style='color: #555555; font-style: italic;'&gt;&amp;lt;chr&amp;gt;&lt;/span&gt;                                        &lt;span style='color: #555555; font-style: italic;'&gt;&amp;lt;LINESTRING [°]&amp;gt;&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;1&lt;/span&gt; Havixbecker Strasse                (7.534 51.96, 7.533 51.96)
+&lt;span style='color: #555555;'&gt;2&lt;/span&gt; Pienersallee          (7.532 51.95, 7.532 51.95, 7.532 51.95)
+&lt;span style='color: #555555;'&gt;3&lt;/span&gt; Schulte-Bernd-Strasse (7.533 51.95, 7.533 51.95, 7.533 51.95)
+&lt;/CODE&gt;&lt;/PRE&gt;
 ]
 ]
 
@@ -176,7 +174,7 @@ Geometric operations (intersections, unions, ..)
 
 ???
 
-Underline it's compatible with most dplyr and tidyr verbs
+Underline it's compatible with most dplyr and tidyr verbs. Each obs has it own geometry/location in space. 
 
 ---
 class: center, top, hide-logo
@@ -192,25 +190,24 @@ edges = tibble(from = c(1,2,3), to = c(2,3,1))
 tidygraph::tbl_graph(nodes, edges)
 ```
 
-```
-# A tbl_graph: 3 nodes and 3 edges
+&lt;PRE class="fansi fansi-output"&gt;&lt;CODE&gt;&lt;span style='color: #555555;'&gt;# A tbl_graph: 3 nodes and 3 edges
 #
 # A directed simple graph with 1 component
 #
-# Node Data: 3 x 1 (active)
+# Node Data: 3 x 1 (active)&lt;/span&gt;
   name 
-  &lt;chr&gt;
-1 a    
-2 b    
-3 c    
-#
-# Edge Data: 3 x 2
+  &lt;span style='color: #555555; font-style: italic;'&gt;&amp;lt;chr&amp;gt;&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;1&lt;/span&gt; a    
+&lt;span style='color: #555555;'&gt;2&lt;/span&gt; b    
+&lt;span style='color: #555555;'&gt;3&lt;/span&gt; c    
+&lt;span style='color: #555555;'&gt;#
+# Edge Data: 3 x 2&lt;/span&gt;
    from    to
-  &lt;int&gt; &lt;int&gt;
-1     1     2
-2     2     3
-3     3     1
-```
+  &lt;span style='color: #555555; font-style: italic;'&gt;&amp;lt;int&amp;gt;&lt;/span&gt; &lt;span style='color: #555555; font-style: italic;'&gt;&amp;lt;int&amp;gt;&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;1&lt;/span&gt;     1     2
+&lt;span style='color: #555555;'&gt;2&lt;/span&gt;     2     3
+&lt;span style='color: #555555;'&gt;3&lt;/span&gt;     3     1
+&lt;/CODE&gt;&lt;/PRE&gt;
 ]
 ]
 
@@ -226,6 +223,10 @@ Tidy interface to the **igraph** library for graph analysis
 Models a graph as a collection of two tibbles
 
 ]
+
+???
+
+It is a wrapper around igraph, which doesn't fit in the tidyverse workflow. Networks cannot really be modelled as tidy data, but the two tables (i.e. edges and nodes) are represented as tidy data. We could simply add a geometry column to a tbl_graph object but that doesn't work since tidygraph doesn't work what to do with the geometry column. 
 
 ---
 class: center, top, hide-logo
@@ -268,27 +269,35 @@ class: top, hide-logo
 as_sfnetwork(roxel)
 ```
 
-```
-# A sfnetwork with 701 nodes and 851 edges
+&lt;PRE class="fansi fansi-output"&gt;&lt;CODE&gt;&lt;span style='color: #555555;'&gt;# A sfnetwork with&lt;/span&gt; &lt;span style='color: #555555;'&gt;701&lt;/span&gt; &lt;span style='color: #555555;'&gt;nodes and&lt;/span&gt; &lt;span style='color: #555555;'&gt;851&lt;/span&gt; &lt;span style='color: #555555;'&gt;edges
 #
-# CRS:  EPSG:4326 
+# CRS: &lt;/span&gt; &lt;span style='color: #555555;'&gt;EPSG:4326&lt;/span&gt; &lt;span style='color: #555555;'&gt;
 #
 # A directed multigraph with 14 components with spatially explicit edges
 #
-# Node Data:     701 x 1 (active)
-# Geometry type: POINT
-# Dimension:     XY
-# Bounding box:  xmin: 7.523 ymin: 51.94 xmax: 7.547 ymax: 51.96
-# ... with 701 more rows, and 1 variable: geometry &lt;GEOMETRY [°]&gt;
-#
-# Edge Data:     851 x 5
-# Geometry type: LINESTRING
-# Dimension:     XY
-# Bounding box:  xmin: 7.523 ymin: 51.94 xmax: 7.547 ymax: 51.96
-# ... with 851 more rows, and 5 variables: from &lt;int&gt;, to &lt;int&gt;,
-#   name &lt;chr&gt;, type &lt;fct&gt;, geometry &lt;GEOMETRY [°]&gt;
-```
+# Node Data:     701 x 1 (active)&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;# Geometry type: POINT&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;# Dimension:     XY&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;# Bounding box:  xmin: 7.523 ymin: 51.94 xmax: 7.547 ymax: 51.96&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;# ... with 701 more rows, and 1 variable: geometry &amp;lt;GEOMETRY [°]&amp;gt;&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;#
+# Edge Data:     851 x 5&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;# Geometry type: LINESTRING&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;# Dimension:     XY&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;# Bounding box:  xmin: 7.523 ymin: 51.94 xmax: 7.547 ymax: 51.96&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;# ... with 851 more rows, and 5 variables: from &amp;lt;int&amp;gt;, to &amp;lt;int&amp;gt;,&lt;/span&gt;
+&lt;span style='color: #555555;'&gt;#   name &amp;lt;chr&amp;gt;, type &amp;lt;fct&amp;gt;, geometry &amp;lt;GEOMETRY [°]&amp;gt;&lt;/span&gt;
+&lt;/CODE&gt;&lt;/PRE&gt;
 ]
+
+---
+class: middle
+
+## Live demo! 
+
+Now we will present a few basic concepts and simple examples using R code. Let's switch to [demo.Rmd](https://github.com/sfnetworks/OGH2021/raw/master/demo.Rmd). 
+
+Please note that we will focus on road network analysis, but, in principle, the package can be used as a general tool for spatial networks (see [here](https://stackoverflow.com/questions/65958776/group-id-for-all-edges-between-points-using-sfnetwork-in-r) and [here](https://stackoverflow.com/questions/68809447/sequencing-of-river-network-calculation-using-sfnetworks-and-r) for examples of stream network analysis and [here](https://shriv-portfolio.netlify.app/post/infrastructure-flows/) for infrastructure flows). 
 
 ---
 class: center, middle
@@ -355,129 +364,12 @@ class: middle
 ]
 
 ---
-class: center, middle
-
-## What can we do?
-
-### Snapping
-
----
-class: middle
-
-count: false
-### Snapping 
- #### Snapping points to their nearest node
-&lt;img src="slides_files/figure-html/snap_user_01_output-1.png" width="864" /&gt;
-
----
-count: false
-### Snapping 
- #### Snapping points to their nearest node
-&lt;img src="slides_files/figure-html/snap_user_02_output-1.png" width="864" /&gt;
-
----
-count: false
-### Snapping 
- #### Snapping points to their nearest node
-&lt;img src="slides_files/figure-html/snap_user_03_output-1.png" width="864" /&gt;
-
----
-count: false
-### Snapping 
- #### Snapping points to their nearest node
-&lt;img src="slides_files/figure-html/snap_user_04_output-1.png" width="864" /&gt;
-
-&lt;style&gt;
-.panel1-snap-user {
-  color: black;
-  width: 99%;
-  hight: 32%;
-  float: left;
-  padding-left: 1%;
-  font-size: 80%
-}
-.panel2-snap-user {
-  color: black;
-  width: NA%;
-  hight: 32%;
-  float: left;
-  padding-left: 1%;
-  font-size: 80%
-}
-.panel3-snap-user {
-  color: black;
-  width: NA%;
-  hight: 33%;
-  float: left;
-  padding-left: 1%;
-  font-size: 80%
-}
-&lt;/style&gt;
-
-
-
-
-
----
-class: middle
-
-count: false
-### Snapping 
- #### Blending points into a network
-&lt;img src="slides_files/figure-html/blend_user_01_output-1.png" width="864" /&gt;
-
----
-count: false
-### Snapping 
- #### Blending points into a network
-&lt;img src="slides_files/figure-html/blend_user_02_output-1.png" width="864" /&gt;
-
----
-count: false
-### Snapping 
- #### Blending points into a network
-&lt;img src="slides_files/figure-html/blend_user_03_output-1.png" width="864" /&gt;
-
-&lt;style&gt;
-.panel1-blend-user {
-  color: black;
-  width: 99%;
-  hight: 32%;
-  float: left;
-  padding-left: 1%;
-  font-size: 80%
-}
-.panel2-blend-user {
-  color: black;
-  width: NA%;
-  hight: 32%;
-  float: left;
-  padding-left: 1%;
-  font-size: 80%
-}
-.panel3-blend-user {
-  color: black;
-  width: NA%;
-  hight: 33%;
-  float: left;
-  padding-left: 1%;
-  font-size: 80%
-}
-&lt;/style&gt;
-
-
-
-
-
----
 class: middle
 
 ## Live demo! 
 
 We developed several more tools to analyse a spatial networks such as **graph and spatial morphers**, **graph and spatial filters** or **routing tools**. 
 Let's see more examples with live demo coding! 
-
-We will focus on road network analysis, but, in principle, the package can be used as a general tool for spatial networks (see [here](https://stackoverflow.com/questions/65958776/group-id-for-all-edges-between-points-using-sfnetwork-in-r) and [here](https://stackoverflow.com/questions/68809447/sequencing-of-river-network-calculation-using-sfnetworks-and-r) for examples of stream network analysis and [here](https://shriv-portfolio.netlify.app/post/infrastructure-flows/) for infrastructure flows). 
 
 ---
 

@@ -95,11 +95,12 @@ class: middle, hide-logo
 
 ## Schedule 
 
-- 17.30 - 18.00: Brief introduction to the R package `sfnetworks`. 
+- 17.30 - 17.45: Brief introduction to the R package `sfnetworks`. 
   * What are Geospatial Networks?
   * Motivations and philosophy behind `sfnetworks`
-  * Main preprocessing functions
-- 18.00 - 18.30: Live demo (see [demo.Rmd](https://github.com/sfnetworks/OGH2021/raw/master/demo.Rmd)) + Q&A + coding the solution to the challenge for OGH 2021
+- 17.45 - 18.00 : Live demo (see [demo.Rmd](https://github.com/sfnetworks/OGH2021/raw/master/demo.Rmd))
+- 18.00 - 18.10: Main preprocessing functions
+- 18.10 - 18.30: Live demo (see [demo.Rmd](https://github.com/sfnetworks/OGH2021/raw/master/demo.Rmd)) + Q&A + coding the solution to the challenge for OGH 2021
 
 You can install the stable version of `sfnetworks` from [CRAN](https://CRAN.R-project.org/package=sfnetworks) and the development version from the [develop](https://github.com/luukvdmeer/sfnetworks/tree/develop) branch of the github repo: 
 
@@ -134,7 +135,7 @@ Edges usually associated with **LINESTRING** geometries
 
 ???
 
-Underline that we cannot split the spatial and graph dimensions
+Underline that we cannot split the spatial and graph dimensions and that the topological information is not enough to describe the network, we need the spatial component. 
 
 ---
 class: center, top, hide-logo
@@ -168,6 +169,10 @@ Shared design philosophy
 Tidy data structures
 ]
 
+???
+
+In that tibble we have that each row is an observation and columns are variables. 
+
 ---
 class: center, top, hide-logo
 
@@ -200,7 +205,7 @@ Geometric operations (intersections, unions, ..)
 
 ???
 
-Underline it's compatible with most dplyr and tidyr verbs
+Underline it's compatible with most dplyr and tidyr verbs. Each obs has it own geometry/location in space. 
 
 ---
 class: center, top, hide-logo
@@ -231,6 +236,10 @@ Tidy interface to the **igraph** library for graph analysis
 Models a graph as a collection of two tibbles
 
 ]
+
+???
+
+It is a wrapper around igraph, which doesn't fit in the tidyverse workflow. Networks cannot really be modelled as tidy data, but the two tables (i.e. edges and nodes) are represented as tidy data. We could simply add a geometry column to a tbl_graph object but that doesn't work since tidygraph doesn't work what to do with the geometry column. 
 
 ---
 class: center, top, hide-logo
@@ -277,6 +286,15 @@ options(sfn_max_print_active = 0L, sfn_max_print_inactive = 0L)
 as_sfnetwork(roxel)
 ```
 ]
+
+---
+class: middle
+
+## Live demo! 
+
+Now we will present a few basic concepts and simple examples using R code. Let's switch to [demo.Rmd](https://github.com/sfnetworks/OGH2021/raw/master/demo.Rmd). 
+
+Please note that we will focus on road network analysis, but, in principle, the package can be used as a general tool for spatial networks (see [here](https://stackoverflow.com/questions/65958776/group-id-for-all-edges-between-points-using-sfnetwork-in-r) and [here](https://stackoverflow.com/questions/68809447/sequencing-of-river-network-calculation-using-sfnetworks-and-r) for examples of stream network analysis and [here](https://shriv-portfolio.netlify.app/post/infrastructure-flows/) for infrastructure flows). 
 
 ---
 class: center, middle
@@ -425,90 +443,12 @@ plot(st_geometry(contracted, "nodes"), pch = 20, cex = 4, add = TRUE)
 ]
 
 ---
-class: center, middle
-
-## What can we do?
-
-### Snapping
-
----
-class: middle
-
-`r chunk_reveal(chunk_name = "snap", break_type = "user", display_type = "output", title = "### Snapping \n #### Snapping points to their nearest node")`
-
-```{r snap, include = F}
-# Create a network.
-node1 = st_point(c(0, 0))
-node2 = st_point(c(1, 0))
-edge = st_sfc(st_linestring(c(node1, node2)))
-net = as_sfnetwork(edge)
-# Create a set of POIs.
-pois = data.frame(poi_type = c("bakery", "butcher"),
-                  x = c(0, 0.6), y = c(0.2, 0.2)) %>%
-  st_as_sf(coords = c("x", "y"))
-# Find indices of nearest nodes.
-nearest_nodes = st_nearest_feature(pois, net)
-# Snap geometries of POIs to the network.
-snapped_pois = pois %>%
-  st_set_geometry(st_geometry(net)[nearest_nodes])
-# Plot.
-plot_connections = function(pois) {
-  for (i in seq_len(nrow(pois))) {
-    connection = st_nearest_points(pois[i, ], net)[nearest_nodes[i]]
-    plot(connection, col = "grey", lty = 2, lwd = 2, add = TRUE)
-  }
-}
-par(mfrow = c(1,2), mar = rep(0, 4))
-plot(net, cex = 2, lwd = 4) #BREAK
-plot_connections(pois)
-plot(pois, pch = 8, cex = 2, lwd = 3, add = TRUE) #BREAK
-plot(net, cex = 2, lwd = 4) #BREAK
-plot(snapped_pois, pch = 8, cex = 3, lwd = 3, add = TRUE)
-```
-
----
-class: middle
-
-`r chunk_reveal(chunk_name = "blend", break_type = "user", display_type = "output", title = "### Snapping \n #### Blending points into a network")`
-
-```{r blend, include = F}
-node1 = st_point(c(0, 0))
-node2 = st_point(c(1, 0))
-edge = st_sfc(st_linestring(c(node1, node2)))
-net = as_sfnetwork(edge)
-pois = data.frame(poi_type = c("bakery", "butcher"),
-            x = c(0, 0.6), y = c(0.1, 0.1)) %>%
-  st_as_sf(coords = c("x", "y")) 
-blended = st_network_blend(net, pois) 
-plot_connections = function(pois) {
-  for (i in seq_len(nrow(pois))) {
-    connection = st_nearest_points(
-      pois[i, ],
-      activate(net, "edges")
-    )
-    plot(
-      connection,
-      col = "grey", lty = 2, lwd = 4,
-      add = TRUE
-    )
-  }
-}
-par(mfrow = c(1,2), mar = rep(0,4))
-plot(net, cex = 2, lwd = 4) #BREAK
-plot_connections(pois)
-plot(pois, pch = 8, cex = 2, lwd = 2, add = TRUE) #BREAK
-plot(blended, cex = 2, lwd = 4)
-```
-
----
 class: middle
 
 ## Live demo! 
 
 We developed several more tools to analyse a spatial networks such as **graph and spatial morphers**, **graph and spatial filters** or **routing tools**. 
 Let's see more examples with live demo coding! 
-
-We will focus on road network analysis, but, in principle, the package can be used as a general tool for spatial networks (see [here](https://stackoverflow.com/questions/65958776/group-id-for-all-edges-between-points-using-sfnetwork-in-r) and [here](https://stackoverflow.com/questions/68809447/sequencing-of-river-network-calculation-using-sfnetworks-and-r) for examples of stream network analysis and [here](https://shriv-portfolio.netlify.app/post/infrastructure-flows/) for infrastructure flows). 
 
 ---
 

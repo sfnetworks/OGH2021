@@ -1,12 +1,13 @@
 ---
 title: 'sfnetworks: Tidy Geospatial Networks in R - OpenGeoHub Summer School 2021'
 author: "Andrea Gilardi"
-date: "01/09/2021"
+date: "2021-02-09"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, fig.align = "center")
+knitr::opts_knit$set(global.par = TRUE)
 ```
 
 ## Introduction
@@ -15,26 +16,33 @@ First, please note that we will present the development version of `sfnetworks` 
 
 ```{r, eval = FALSE}
 install.packages("remotes")
-remotes::install_github("luukvdmeer/sfnetworks", "develop")
+remotes::install_github("luukvdmeer/sfnetworks", "develop", quiet = TRUE)
 ```
 
 Load some packages, data and options: 
 
-```{r, message=FALSE}
+```{r, message = FALSE}
 Sys.setenv(`_R_S3_METHOD_REGISTRATION_NOTE_OVERWRITES_` = "false")
 library(sf)
 library(tidygraph)
 library(sfnetworks)
 library(ggplot2)
-library(tmap)
-library(magrittr)
 
-iow <- st_read("https://github.com/sfnetworks/OGH2021/raw/master/isle-of-wight.gpkg", quiet = TRUE)
+iow <- st_read(
+  dsn = "https://github.com/sfnetworks/OGH2021/raw/master/isle-of-wight.gpkg", 
+  quiet = TRUE
+)
 ```
 
 The object `iow` represents a subset of the street segments that define the road network of the Isle of Wight, an island located in the south of England, according to a driving mode of transport. 
 
-Let's see a plot: 
+Let's see a print: 
+
+```{r}
+iow
+```
+
+and a plot: 
 
 ```{r}
 par(mar = rep(0, 4))
@@ -384,7 +392,7 @@ The result is returned as an object of class tibble with one row per path. The c
 ```{r}
 edges_path <- sfn_clean %>%
   st_geometry("edges") %>%
-  extract(do.call(c, sfn_path$edge_paths))
+  magrittr::extract(do.call(c, sfn_path$edge_paths))
 
 par(mar = rep(0, 4))
 plot(sfn_clean, col = "grey")
@@ -418,5 +426,78 @@ More details:
 
 Check the introductory vignettes for many many more examples (e.g. one-to-many routing, distance matrices, closest facility analysis, TSP, isochrones). 
 
+## Solution to the OGH challenge and relevant example
 
+Now we will code one possible solution to the OGH 2021 challenge. First, we need to load the R package spatstat:
 
+```{r}
+library(spatstat)
+```
+
+and convert the sfn_clean object into linnet format:
+
+```{r}
+my_linnet <- as.linnet(sfn_clean, sparse = TRUE)
+```
+
+We can use the R package stars to rasterise one of the fields in the edges table. So, first extract the edges table
+
+```{r}
+my_edges <- st_as_sf(sfn_clean, "edges")
+```
+
+and then rasterise the `betw` column:
+
+```{r}
+library(stars)
+my_stars <- st_rasterize(
+  my_edges["betw"],
+  st_as_stars(st_network_bbox(sfn_clean), nx = 150, ny = 200)
+)
+```
+
+the output can be converted to im class
+
+```{r}
+my_im <- as.im(my_stars)
+```
+
+and then linim class
+
+```{r}
+my_linim <- linim(my_linnet, my_im)
+```
+
+Print the result
+
+```{r}
+my_linim
+```
+
+and plot it
+
+```{r}
+plot(my_linim)
+```
+
+As mentioned in the text of the challenge, this approach may be useful for statistical models at the (spatial) road network level. For example, we can simulate some data on the network:
+
+```{r}
+set.seed(3)
+my_lpp <- runiflpp(300, my_linnet)
+```
+
+Plot the result. Please note that the red dots denote events on the linear network.
+
+```{r}
+plot(my_lpp, pch = 16, cols = "red", col = "grey", cex = 0.8, main = "")
+```
+
+and estimate its intensity as a function of the betw covariate:
+
+```{r}
+par(mar = c(5, 4, 2, 2))
+plot(rhohat(my_lpp, sqrt(my_linim)))
+```
+
+Clearly this is just a toy example, check [Prof. Rubak's presentation](http://spatstat.org/OGH2021/) for more details.

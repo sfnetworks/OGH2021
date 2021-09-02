@@ -295,6 +295,7 @@ plot(my_random_sfn, add = TRUE, pch = 46, draw_lines = FALSE, cex = 0.01)
 plot(my_small_random_sfn, add = TRUE, pch = 46, draw_lines = FALSE, cex = 0.01, col = "darkred")
 
 rm(unit_square, small_square, my_random_nodes, my_random_sfn, my_small_random_sfn, my_small_random_sfn_v1, my_small_random_sfn_v2, idxs)
+
 # Shortest paths ----------------------------------------------------------
 
 # Calculating shortest paths between pairs of nodes is a core task in network
@@ -354,3 +355,49 @@ plot(end_point, col = "#fc8d62", pch = 20, add = TRUE, cex = 2)
 # isochrones)
 
 # Solution to the OGH challenge and relevant example ----------------------
+
+# Now we will code one possible solution to the OGH 2021 challenge. First, we
+# need to load the R package spatstat:
+library(spatstat)
+
+# and convert the sfn_clean object into linnet format:
+my_linnet <- as.linnet(sfn_clean, sparse = TRUE)
+
+# We can use the R package stars to rasterise one of the fields in the edges
+# table. So, first extract the edges table
+my_edges <- st_as_sf(sfn_clean, "edges")
+
+# and then rasterise the betw column:
+library(stars)
+my_stars <- st_rasterize(
+  my_edges["betw"],
+  st_as_stars(st_network_bbox(sfn_clean), nx = 150, ny = 200)
+)
+
+# the output can be converted to im class
+my_im <- as.im(my_stars)
+
+# and then linim class
+my_linim <- linim(my_linnet, my_im)
+
+# Print the result
+my_linim
+
+# and plot it
+plot(my_linim)
+
+# As mentioned in the text of the challenge, this approach may be useful for
+# statistical models at the (spatial) road network level. For example, we can
+# simulate some data on the network:
+set.seed(3)
+my_lpp <- runiflpp(300, my_linnet)
+
+# Plot the result. Please note that the red dots denote events on the linear network.
+plot(my_lpp, pch = 16, cols = "red", col = "grey", cex = 0.8, main = "")
+
+# And estimate its intensity as a function of the betw covariate:
+par(mar = c(5, 4, 2, 2))
+plot(rhohat(my_lpp, sqrt(my_linim)))
+
+# Clearly this is just a toy example, check Prof. Rubak's presentation
+# (http://spatstat.org/OGH2021/) for more details.
